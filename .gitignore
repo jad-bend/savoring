@@ -1,0 +1,9 @@
+.venv/
+__pycache__/
+*.jsonl
+tomorrow.json
+*.mp3
+cloudflared*
+*.tgz
+xcuserdata/
+.DS_Store

@@ -1,0 +1,5 @@
+smolagents[litellm]
+fastapi
+uvicorn
+requests
+tzdata
