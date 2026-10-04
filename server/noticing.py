@@ -19,7 +19,7 @@ from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
 import requests
-from fastapi import APIRouter, Header, HTTPException
+from fastapi import APIRouter, Header, HTTPException, Request
 from pydantic import BaseModel
 from smolagents import LiteLLMModel, Tool, ToolCallingAgent
 
@@ -376,3 +376,23 @@ def decisions(x_kept_secret: str = Header(default="")):
 def notes(x_kept_secret: str = Header(default="")):
     check(x_kept_secret)
     return {"notes": read_notes()}
+
+@router.post("/import")
+async def import_moments(request: Request, x_kept_secret: str = Header(default="")):
+    """Adds moments sent as JSONL text. Skips any whose id is already in the deck."""
+    check(x_kept_secret)
+    body = (await request.body()).decode("utf-8")
+    have = {m.get("id") for m in read_rows(MOMENTS)}
+    added = 0
+    for line in body.splitlines():
+        try:
+            row = json.loads(line)
+        except Exception:
+            continue
+        rid = row.get("id")
+        if rid and rid in have:
+            continue
+        append_row(MOMENTS, row)
+        have.add(rid)
+        added += 1
+    return {"added": added, "total": len(read_rows(MOMENTS))}
