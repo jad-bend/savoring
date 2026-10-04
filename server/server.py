@@ -4,6 +4,7 @@ from zoneinfo import ZoneInfo
 import requests
 from fastapi import FastAPI, Header, HTTPException, Response
 from pydantic import BaseModel
+import noticing
 from smolagents import ToolCallingAgent, LiteLLMModel, Tool
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -243,6 +244,7 @@ def check(secret: str):
         raise HTTPException(status_code=401)
 
 app = FastAPI()
+app.include_router(noticing.router)
 
 class Reply(BaseModel):
     text: str
@@ -250,14 +252,14 @@ class Reply(BaseModel):
 @app.post("/press")
 def press(x_kept_secret: str = Header(default="")):
     check(x_kept_secret)
-    return begin([Ask, SaveMoment], rules("capture_rules.txt"),
+    return begin([Ask, SaveMoment], rules("capture_rules.txt") + noticing.for_capture(),
                  "The user just pressed the button. Guide one capture.", 10)
 
 @app.post("/reading")
 def reading(x_kept_secret: str = Header(default="")):
     check(x_kept_secret)
-    return begin([Ask, Tell, GetDeck, Deal, ShowTomorrow, FinishReading],
-                 rules("reading_rules.txt"), "It is night. Run tonight's reading.", 40)
+    return begin([Ask, Tell, GetDeck, Deal, ShowTomorrow, FinishReading, noticing.KeepNotes],
+                 rules("reading_rules.txt") + noticing.for_reading(), "It is night. Run tonight's reading.", 40)
 
 @app.post("/reply")
 def reply(r: Reply, x_kept_secret: str = Header(default="")):
